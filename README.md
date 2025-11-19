@@ -27,7 +27,7 @@ The package is based on the great work on treatment effect estimation in R by [O
 
 Contact
 -----------------
-You can report issues and ask questions in the repository's issues page. If you choose to send an email instead, please direct it to Derya Uysal at derya.uysal@econ.lmu.de and include [kappalate] in the subject line.
+You can report issues and ask questions in the repository's issues page. If you choose to send an email instead, please direct it to Derya Uysal at derya.uysal@econ.lmu.de and include [teffects2] in the subject line.
 
 ## Acknowledgments
 Special thanks to [**Lennart Ohly**](https://github.com/LennartOhly) for extensive work on the R implementation.  
