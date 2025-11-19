@@ -1,7 +1,7 @@
 # teffects2
 This repository contains companion code for the following paper:
 
-Słoczyński, T., Uysal, S. D., & Wooldridge, J. M. (2025). Covariate Balancing and the Equivalence of Weighting and Doubly Robust Estimators of Average Treatment Effects}
+Słoczyński, T., Uysal, S. D., & Wooldridge, J. M. (2025). Covariate Balancing and the Equivalence of Weighting and Doubly Robust Estimators of Average Treatment Effects
 
 If you use this code please cite the paper using the bibtex reference below.
 
