@@ -1,0 +1,16 @@
+Package: teffects2
+Type: Package
+Title: Treatment Effects for R using covariate balancing methods
+Version: 1.0
+Author: Lennart Ohly
+Maintainer: Derya Uysal <Derya.Uysal@econ.lmu.de>
+Description: Fit causal treatment-effect estimands using propensity scores derived using covariate balancing methods.
+License: tbd
+Encoding: UTF-8
+LazyData: true
+Imports:
+  Matching
+Suggests:
+  testthat
+RoxygenNote: 7.3.3
+
