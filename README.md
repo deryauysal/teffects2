@@ -20,7 +20,7 @@ It contains the Stata package teffects2. teffects2 estimates average treatment e
     teffects2 supports covariate balancing estimation of the propensity score.
 
 # R
-It contains the R package to estimate AIPW, IPW, and IPWRA estimators using Covariate Balancing Methods: IPT, Graham et al. (2012), and CBSP, Imai and Ratkovic (2014) in addition to the standard approach using maximum likelihood. You can download it via the `devtools` package and entering `install_github("LennartOhly/teffects2")`.
+It contains the R package to estimate AIPW, IPW, and IPWRA estimators using Covariate Balancing Methods: IPT, Graham et al. (2012), and CBSP, Imai and Ratkovic (2014) in addition to the standard approach using maximum likelihood. You can download it via the `devtools` package and entering `install_github("deryauysal/teffects2")`.
 The package is based on the great work on treatment effect estimation in R by [Oliver Hines](https://github.com/ohines/teffectsR).
 
 > **Status:** The R code is currently in **beta** and has **not been extensively tested**. Interfaces and results may change. Feedback, bug reports, and pull requests are very welcome.
