@@ -36,7 +36,7 @@ required.}
 
 \item{treatment.effect}{The treatment effect estimand. Can be either
 \code{"ATE","ATT","ATC"} or \code{"All"} to fit all three.
-The method, \code{"IPW"}, can only fit the ATE estimand.}
+The method, \code{"IPW"}, can fit the ATE and the ATT.}
 
 \item{data}{an optional data frame, list or environment
 (or object coercible by \code{\link{as.data.frame}}  to a data frame)
@@ -115,6 +115,7 @@ teffect(A ~ X, Z ~ 1, data = df, method = "PSMatch")
 # Fit IPW using a covariate balancing method to estimate propensity scores
 teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "CBPS")
 teffect(A ~ X, Z ~ 1, data = df, method = "IPW", cov.balancing = "IPT", cov.balancing.norm = TRUE)
+teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
 
 # Fit AIPW using a covariate balancing method to estimate propensity scores
 teffect(A ~ X, Y ~ 1, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "CBPS")

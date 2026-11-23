@@ -4,7 +4,15 @@
 \alias{fit_ipw_cb}
 \title{Fit Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBSP, Imai and Ratkovic (2014)}
 \usage{
-fit_ipw_cb(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balancing.norm)
+fit_ipw_cb(
+  X,
+  Y,
+  Zx,
+  weights = rep(1, N),
+  cov.balancing,
+  cov.balancing.norm,
+  treatment.effect = "ATE"
+)
 }
 \arguments{
 \item{X}{numeric vector of (0,1) specifiying the treatment variable.}
@@ -20,6 +28,11 @@ in the fitting process.}
 method should be applied. Possible values are \code{"CBPS"} or \code{"IPT"}.}
 
 \item{cov.balancing.norm}{character string indicating whether to normalize the estimator. Results in NIPW.}
+
+\item{treatment.effect}{the treatment effect estimand of interest.
+Can be either \code{"ATE"} or \code{"ATT"}. For the ATT, IPT and CBPS use the same
+moment conditions (the weighted covariate means of the controls equal those of the
+treated), so both give the same estimate, and the weights are automatically normalized.}
 }
 \value{
 List of fit parameters, which is used to derive an object of class
@@ -49,5 +62,6 @@ df <- data.frame(X = X, A = A, Y = Y, Z = Z)
 
 teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "CBPS")
 teffect(A ~ X, Z ~ 1, data = df, method = "IPW", cov.balancing = "IPT", cov.balancing.norm = TRUE)
+teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
 
 }

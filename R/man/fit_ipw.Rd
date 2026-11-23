@@ -4,7 +4,7 @@
 \alias{fit_ipw}
 \title{Fit Inverse Probability Weighting}
 \usage{
-fit_ipw(X, Y, Zx, weights = rep(1, N))
+fit_ipw(X, Y, Zx, weights = rep(1, N), treatment.effect = "ATE")
 }
 \arguments{
 \item{X}{numeric vector of (0,1) specifiying the treatment variable.}
@@ -15,6 +15,9 @@ fit_ipw(X, Y, Zx, weights = rep(1, N))
 
 \item{weights}{an optional numeric vector of ‘observation weights’ to be used
 in the fitting process.}
+
+\item{treatment.effect}{the treatment effect estimand of interest.
+Can be either \code{"ATE"} or \code{"ATT"}.}
 }
 \value{
 List of fit parameters, which is used to derive an object of class
@@ -29,6 +32,8 @@ Predictions from this model are used to weight the observations and derive
  potential outcome means.
 This implementation normalizes the propesnity score weights.
 This is sometimes called the "sample bounded" IPW estimator.
+For the ATT, the controls are weighted by the estimated odds
+\eqn{p(X)/(1-p(X))} and the weights are normalized to sum to one.
 }
 \examples{
 # generate some data
@@ -41,5 +46,6 @@ df <- data.frame(X = X, A = A, Y = Y, Z = Z)
 
 teffect(A ~ X, Y ~ 1, data = df, method = "IPW")
 teffect(A ~ X, Z ~ 1, data = df, method = "IPW")
+teffect(A ~ X, Y ~ 1, data = df, method = "IPW", treatment.effect = "ATT")
 
 }
