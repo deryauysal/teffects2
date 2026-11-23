@@ -1,6 +1,8 @@
-library(devtools)
-install_github("LennartOhly/teffects2")
+# Install once (the R package is in the R/ folder of the repository):
+# devtools::install_github("deryauysal/teffects2", subdir = "R")
 library(teffects2)
+
+set.seed(1)
 
 
 N <- 1000
@@ -31,7 +33,7 @@ print(model_IPT_AIPW)
 model_IPT_IPWRA <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights = weights, outcome.family = "gaussian",
                          method = "IPWRA", treatment.effect = "ATE", cov.balancing = "IPT",
                          cov.balancing.norm = TRUE)
-print(model_IPT_AIPW)
+print(model_IPT_IPWRA)
 
 
 # Further we can see that the AIPW and IPW estimates using IPT weights are automatically normalized.
@@ -65,7 +67,7 @@ model_CBPS_AIPW_nrm <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights = we
 print(model_CBPS_AIPW_nrm)
 
 model_CBPS_AIPW_not_nrm <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights = weights, outcome.family = "gaussian",
-                                 method = "IPW", treatment.effect = "ATT", cov.balancing = "CBPS",
+                                 method = "AIPW", treatment.effect = "ATE", cov.balancing = "CBPS",
                                  cov.balancing.norm = FALSE)
 print(model_CBPS_AIPW_not_nrm)
 
