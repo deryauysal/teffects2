@@ -36,7 +36,7 @@
 #' required.
 #' @param treatment.effect The treatment effect estimand. Can be either
 #' \code{"ATE","ATT","ATC"} or \code{"All"} to fit all three.
-#' The method, \code{"IPW"}, can only fit the ATE estimand.
+#' The method, \code{"IPW"}, can fit the ATE and the ATT.
 #' @param data an optional data frame, list or environment
 #' (or object coercible by \code{\link{as.data.frame}}  to a data frame)
 #' containing the variables in the model. If not found in data, the
@@ -84,6 +84,7 @@
 #' # Fit IPW using a covariate balancing method to estimate propensity scores
 #' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "CBPS")
 #' teffect(A ~ X, Z ~ 1, data = df, method = "IPW", cov.balancing = "IPT", cov.balancing.norm = TRUE)
+#' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
 #' 
 #' # Fit AIPW using a covariate balancing method to estimate propensity scores
 #' teffect(A ~ X, Y ~ 1, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "CBPS")
@@ -181,12 +182,14 @@ teffect <- function(exposure.formula, outcome.formula,
   
   ## IPW
   } else if (method == "IPW") {
-    if (treatment.effect != "ATE") {
-      warning("Method: 'IPW' only compatible with ATE. Estimating ATE. ")
+    if (!treatment.effect %in% c("ATE", "ATT")) {
+      warning("Method: 'IPW' only compatible with ATE and ATT. Estimating ATE. ")
+      treatment.effect <- "ATE"
     }
     if (!is.null(cov.balancing) && cov.balancing %in% c("CBPS", "IPT")){
     a <- teffects2::fit_ipw_cb(X, Y, Zx, weights = weights,
-          cov.balancing = cov.balancing, cov.balancing.norm = cov.balancing.norm)
+          cov.balancing = cov.balancing, cov.balancing.norm = cov.balancing.norm,
+          treatment.effect = treatment.effect)
     if (cov.balancing.norm == TRUE){
       method = "NIPW"
     }
@@ -194,7 +197,8 @@ teffect <- function(exposure.formula, outcome.formula,
       if (!is.null(cov.balancing)){
       warning("Covariate balancing method invalid. Only 'CBPS', and 'IPT' accepted. Continuing without covariate balancing") } 
       cov.balancing = "none"
-      a <- teffects2::fit_ipw(X, Y, Zx, weights = weights)}
+      a <- teffects2::fit_ipw(X, Y, Zx, weights = weights,
+                              treatment.effect = treatment.effect)}
   
   ## RA
   } else if (method == "RA") {

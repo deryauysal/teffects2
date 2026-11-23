@@ -8,12 +8,16 @@
 #'  potential outcome means.
 #' This implementation normalizes the propesnity score weights.
 #' This is sometimes called the "sample bounded" IPW estimator.
+#' For the ATT, the controls are weighted by the estimated odds
+#' \eqn{p(X)/(1-p(X))} and the weights are normalized to sum to one.
 #'
 #' @param X numeric vector of (0,1) specifiying the treatment variable.
 #' @param Y numeric vector sepcifying the outcome variable
 #' @param Zx design matrix for the exposure (propensity score) model.
 #' @param weights an optional numeric vector of ‘observation weights’ to be used
 #'  in the fitting process.
+#' @param treatment.effect the treatment effect estimand of interest.
+#' Can be either \code{"ATE"} or \code{"ATT"}.
 #'
 #' @return List of fit parameters, which is used to derive an object of class
 #' \code{teffects} when called by \link[teffects2]{teffect}.
@@ -28,10 +32,11 @@
 #'
 #' teffect(A ~ X, Y ~ 1, data = df, method = "IPW")
 #' teffect(A ~ X, Z ~ 1, data = df, method = "IPW")
+#' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", treatment.effect = "ATT")
 #' 
 #' @importFrom stats quasibinomial family
 #' @export
-fit_ipw <- function(X, Y, Zx, weights = rep(1, N)) {
+fit_ipw <- function(X, Y, Zx, weights = rep(1, N), treatment.effect = "ATE") {
   N <- NROW(X)
   if (is.null(weights)) {
     weights <- rep.int(1, N)
@@ -42,6 +47,32 @@ fit_ipw <- function(X, Y, Zx, weights = rep(1, N)) {
   IFa <- teffects2::IF.glm(X.mod, Zx) # Influence function of ps model
 
   ps <- X.mod$fitted.values
+
+  if (treatment.effect == "ATT") {
+    # Controls are weighted by the odds p/(1-p); d(odds)/d(index) = odds for logit
+    om <- (1 - X) * ps / (1 - ps)
+    N1 <- sum(wt * X)
+    N.om <- sum(wt * om)
+    Po1.mean <- sum(Y * X * wt) / N1
+    Po0.mean <- sum(Y * om * wt) / N.om
+
+    xbar0a <- ((Y - Po0.mean) * om * wt) %*% Zx / N.om
+
+    IF1 <- (Y - Po1.mean) * wt * X * N / N1
+    IF0 <- (Y - Po0.mean) * wt * om * N / N.om + IFa %*% t(xbar0a)
+
+    TE <- Po1.mean - Po0.mean
+    Var <- sum((IF1 - IF0)^2) / N^2
+
+    a <- list()
+    a$coefs <- c(ATT = TE)
+    a$std.err <- c(ATT = sqrt(Var))
+    a$Wald <- c(ATT = TE^2 / Var)
+    a$PO.means <- c(Po1 = Po1.mean, Po0 = Po0.mean)
+    a$PO.std.err <- c(Po1 = sqrt(sum(IF1^2)) / N, Po0 = sqrt(sum(IF0^2)) / N)
+    return(a)
+  }
+
   X_ps <- X / ps
   cX_ps <- (1 - X) / (1 - ps)
   dX_ps <- -X_ps * (1 - ps) # derivative of weights

@@ -19,6 +19,10 @@
 #' @param cov.balancing character string indicating which covariate balancing
 #' method should be applied. Possible values are \code{"CBPS"} or \code{"IPT"}.
 #' @param cov.balancing.norm character string indicating whether to normalize the estimator. Results in NIPW.
+#' @param treatment.effect the treatment effect estimand of interest.
+#' Can be either \code{"ATE"} or \code{"ATT"}. For the ATT, IPT and CBPS use the same
+#' moment conditions (the weighted covariate means of the controls equal those of the
+#' treated), so both give the same estimate, and the weights are automatically normalized.
 #' @return List of fit parameters, which is used to derive an object of class
 #' \code{teffects} when called by \link[teffects2]{teffect}.
 #' @examples
@@ -32,11 +36,13 @@
 #'
 #' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "CBPS")
 #' teffect(A ~ X, Z ~ 1, data = df, method = "IPW", cov.balancing = "IPT", cov.balancing.norm = TRUE)
+#' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
 #' 
 #' @importFrom stats quasibinomial family
 #' @import geex
 #' @export
-fit_ipw_cb <- function(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balancing.norm) {
+fit_ipw_cb <- function(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balancing.norm,
+                       treatment.effect = "ATE") {
   N <- NROW(X)
   if (is.null(weights)) {
     weights <- rep.int(1, N)
@@ -56,6 +62,10 @@ fit_ipw_cb <- function(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balanci
   
   initial.mod <- stats::glm.fit(Zx, X, family = quasibinomial(), weights = wt)
   initial.coef <- initial.mod$coefficients
+
+  if (treatment.effect == "ATT") {
+    return(fit_ipw_cb_att(df, X, Y, Zx, wt, initial.coef, cov.balancing.norm))
+  }
   
   #Propensity Score Estimation with CBPS
   if (cov.balancing == "CBPS"){
@@ -223,5 +233,78 @@ fit_ipw_cb <- function(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balanci
   a$Wald <- c(ATE = ate^2 / var_ate)
   a$PO.means <- c(Po1 = mu1, Po0 = mu0)
   a$PO.std.err <- c(Po1 = sqrt(var_mu1), Po0 = sqrt(var_mu0))
+  a
+}
+
+
+# IPW estimator of the ATT with covariate balancing weights (internal).
+# The propensity score solves the ATT balancing conditions
+#   sum_i [ (1 - W_i) p_i / (1 - p_i) - W_i ] X_i = 0,
+# which are the IPT conditions for the ATT and also the CBPS conditions for the ATT
+# (Imai and Ratkovic, 2014). The controls are weighted by p/(1-p).
+fit_ipw_cb_att <- function(df, X, Y, Zx, wt, initial.coef, cov.balancing.norm) {
+  att_ps_moment <- function(data){
+    X <- data$X
+    Zx <- data$Zx
+    function(theta){
+      px <- plogis(Zx %*% theta)
+      c(((1 - X) * px / (1 - px) - X) %*% Zx)
+    }
+  }
+  ps_results <- m_estimate(
+    estFUN = att_ps_moment,
+    data   = df,
+    weights = wt,
+    root_control = setup_root_control(start = initial.coef)
+  )
+  bips <- coef(ps_results)
+  ps <- as.vector(plogis(Zx %*% bips))
+  om <- (1 - X) * ps / (1 - ps)
+
+  Po1.mean <- sum(Y * X * wt) / sum(X * wt)
+  Po0.mean <- sum(Y * om * wt) / sum(X * wt)
+  if (cov.balancing.norm == TRUE){
+    Po0.mean <- sum(Y * om * wt) / sum(om * wt)
+  }
+  TE <- Po1.mean - Po0.mean
+
+  eq_ps <- expression(((1 - X) * px / (1 - px) - X) %*% Zx)
+  eq_mu1 <- expression(X * (Y - mu1))
+  eq_mu0 <- expression((1 - X) * px / (1 - px) * Y - X * mu0)
+  if (cov.balancing.norm == TRUE){
+    eq_mu0 <- expression((1 - X) * px / (1 - px) * (Y - mu0))
+  }
+  eq_att <- expression(att - mu1 + mu0)
+
+  ipw_att_moments <- function(data){
+    X <- data$X
+    Zx <- data$Zx
+    Y <- data$Y
+    function(theta){
+      px <- plogis(Zx %*% theta[1:ncol(Zx)])
+      mu1 <- theta[ncol(Zx) + 1]
+      mu0 <- theta[ncol(Zx) + 2]
+      att <- theta[ncol(Zx) + 3]
+      c(eval(eq_ps), eval(eq_mu1), eval(eq_mu0), eval(eq_att))
+    }
+  }
+  est <- m_estimate(
+    estFUN = ipw_att_moments,
+    data   = df,
+    weights = wt,
+    root_control = setup_root_control(start = c(bips, Po1.mean, Po0.mean, TE)))
+
+  cf <- coef(est)
+  V <- vcov(est)
+  k <- length(cf)
+  att <- cf[k]
+  var_att <- V[k, k]
+
+  a <- list()
+  a$coefs <- c(ATT = unname(att))
+  a$std.err <- c(ATT = sqrt(var_att))
+  a$Wald <- c(ATT = unname(att^2 / var_att))
+  a$PO.means <- c(Po1 = unname(cf[k - 2]), Po0 = unname(cf[k - 1]))
+  a$PO.std.err <- c(Po1 = sqrt(V[k - 2, k - 2]), Po0 = sqrt(V[k - 1, k - 1]))
   a
 }
