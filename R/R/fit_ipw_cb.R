@@ -1,4 +1,4 @@
-#' Fit Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBSP, Imai and Ratkovic (2014)
+#' Fit Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBPS, Imai and Ratkovic (2014)
 #'
 #' Fitting function called by \link[teffects2]{teffect} when the method is
 #' set to \code{'IPW'} and \code{'cov.balancing'} is set to \code{'IPT'} or \code{'CBPS'}.
@@ -38,7 +38,7 @@
 #' teffect(A ~ X, Z ~ 1, data = df, method = "IPW", cov.balancing = "IPT", cov.balancing.norm = TRUE)
 #' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
 #' 
-#' @importFrom stats quasibinomial family
+#' @importFrom stats quasibinomial family plogis
 #' @import geex
 #' @export
 fit_ipw_cb <- function(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balancing.norm,
@@ -243,21 +243,7 @@ fit_ipw_cb <- function(X, Y, Zx, weights = rep(1, N), cov.balancing, cov.balanci
 # which are the IPT conditions for the ATT and also the CBPS conditions for the ATT
 # (Imai and Ratkovic, 2014). The controls are weighted by p/(1-p).
 fit_ipw_cb_att <- function(df, X, Y, Zx, wt, initial.coef, cov.balancing.norm) {
-  att_ps_moment <- function(data){
-    X <- data$X
-    Zx <- data$Zx
-    function(theta){
-      px <- plogis(Zx %*% theta)
-      c(((1 - X) * px / (1 - px) - X) %*% Zx)
-    }
-  }
-  ps_results <- m_estimate(
-    estFUN = att_ps_moment,
-    data   = df,
-    weights = wt,
-    root_control = setup_root_control(start = initial.coef)
-  )
-  bips <- coef(ps_results)
+  bips <- fit_att_ps_cb(df, wt, initial.coef)
   ps <- as.vector(plogis(Zx %*% bips))
   om <- (1 - X) * ps / (1 - ps)
 
@@ -307,4 +293,27 @@ fit_ipw_cb_att <- function(df, X, Y, Zx, wt, initial.coef, cov.balancing.norm) {
   a$PO.means <- c(Po1 = unname(cf[k - 2]), Po0 = unname(cf[k - 1]))
   a$PO.std.err <- c(Po1 = sqrt(V[k - 2, k - 2]), Po0 = sqrt(V[k - 1, k - 1]))
   a
+}
+
+
+# Propensity score for the ATT with covariate balancing (internal).
+# Solves sum_i [ (1 - W_i) p_i / (1 - p_i) - W_i ] X_i = 0 for the logit index,
+# i.e. the odds-weighted covariate means of the controls equal those of the treated.
+# These are the IPT conditions for the ATT and also the CBPS conditions for the ATT.
+fit_att_ps_cb <- function(df, wt, start) {
+  att_ps_moment <- function(data){
+    X <- data$X
+    Zx <- data$Zx
+    function(theta){
+      px <- plogis(Zx %*% theta)
+      c(((1 - X) * px / (1 - px) - X) %*% Zx)
+    }
+  }
+  ps_results <- m_estimate(
+    estFUN = att_ps_moment,
+    data   = df,
+    weights = wt,
+    root_control = setup_root_control(start = start)
+  )
+  coef(ps_results)
 }

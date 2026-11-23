@@ -1,4 +1,4 @@
-#' Fit Inverse Probability Weighted Regression Adjustment using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBSP, Imai and Ratkovic (2014) 
+#' Fit Inverse Probability Weighted Regression Adjustment using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBPS, Imai and Ratkovic (2014) 
 #'
 #' Fitting function called by \link[teffects2]{teffect} when the method is set
 #' to \code{'IPWRA'} and \code{'cov.balancing'} is set to \code{'IPT'} or \code{'CBPS'}.
@@ -10,7 +10,6 @@
 #' for the exposure (propensity score model).
 #' \code{'CBPS'}, Covariate balancing according to Imai and Ratkovic (2014) which effectively weighs the general maximum-likelihood estimation
 #' moment conditions by their estimated inverse conditional variance to estimate the exposure (propensity score model).
-#' observation weights.
 #' Also a (\link[stats]{glm}) outcome model is fitted to each treatment
 #' subgroup, and used to predict potential outcomes.
 #'
@@ -22,11 +21,14 @@
 #' @param Ofam family function for the outcome model.
 #' See \link[stats]{family} for details of family functions.
 #' @param treatment.effect the treatment effect estimand of interest.
-#' Can be either \code{"ATE","ATT","ATC"} or \code{"All"} to fit all three.
+#' Can be either \code{"ATE"}, \code{"ATT"}, or \code{"All"} (ATE and ATT).
+#' The ATC is not implemented with covariate balancing. For the ATT, IPT and CBPS use
+#' the same moment conditions and give the same estimate.
 #' @param weights an optional numeric vector of ‘observation weights’ to be used
 #' in the fitting process.
 #' @param cov.balancing character string indicating which covariate balancing
 #' method should be applied. Possible values are \code{"CBPS"} or \code{"IPT"}.
+#' @param cov.balancing.norm ignored; the IPWRA weights are always normalized.
 #'
 #' @return List of fit parameters, which is used to derive an object of class
 #' \code{teffects} when called by \link[teffects2]{teffect}.
@@ -39,8 +41,9 @@
 #' Z <- rbinom(N, 1, plogis(Y)) # binary outcome
 #' df <- data.frame(X = X, A = A, Y = Y, Z = Z)
 #'
-#' teffect(A ~ X, Y ~ X, data = df, method = "AIPW")
-#' teffect(A ~ X, Z ~ X, data = df, outcome.family = "binomial", method = "AIPW")
+#' teffect(A ~ X, Y ~ X, data = df, method = "IPWRA", cov.balancing = "IPT")
+#' teffect(A ~ X, Y ~ X, data = df, method = "IPWRA", cov.balancing = "IPT", treatment.effect = "ATT")
+#' teffect(A ~ X, Z ~ X, data = df, method = "IPWRA", outcome.family = "binomial", cov.balancing = "CBPS")
 #' 
 #' @importFrom stats gaussian quasibinomial family
 #' @import geex
@@ -168,6 +171,11 @@ fit_ipwra_cb <- function(X, Y, Zx, Zy, Ofam = gaussian(), treatment.effect = "AT
   TEs <- list(ATE = "ATE", ATT = "ATT", ATC = "ATC")
   
   if (treatment.effect != "All") TEs <- TEs[treatment.effect]
+  if ("ATC" %in% names(TEs)) {
+    if (treatment.effect == "ATC") stop("ATC not implemented with covariate balancing.")
+    warning("ATC not implemented with covariate balancing. Estimating ATE and ATT.")
+    TEs <- TEs[c("ATE", "ATT")]
+  }
   
   run <- lapply(TEs, function(teffect) {
   
@@ -267,6 +275,64 @@ fit_ipwra_cb <- function(X, Y, Zx, Zy, Ofam = gaussian(), treatment.effect = "AT
     var_mu0 <- vcov_ate[nrow(vcov_ate)-1,ncol(vcov_ate)-1]
     
     }  
+    
+    ## ATT: the ATT propensity score is the same for IPT and CBPS.
+    ## The control outcome model is fit by GLM on the controls with odds weights p/(1-p);
+    ## mu0 is the mean of its predictions over the treated.
+    if (teffect == "ATT"){
+      bips_att <- fit_att_ps_cb(df, wt, initial.X.coef)
+      ps_att <- as.vector(plogis(Zx %*% bips_att))
+      om <- (1 - X) * ps_att / (1 - ps_att)
+      suppressWarnings({
+        att.Y.mod0 <- stats::glm.fit(Zy, Y, family = Ofam, weights = wt * om)
+      })
+      bips_y_0_att <- att.Y.mod0$coefficients
+      m0 <- as.vector(link(Zy %*% bips_y_0_att))
+      N1 <- sum(wt * X)
+      Po1.mean <- sum(wt * X * Y) / N1
+      Po0.mean <- sum(wt * X * m0) / N1
+      TE <- Po1.mean - Po0.mean
+
+      eq_ps <- expression(((1 - X) * px / (1 - px) - X) %*% Zx)
+      eq_y0 <- expression(((1 - X) * px / (1 - px) * ((Y - initial.est.mu0) / var.glm0) * mu.eta0) %*% Zy)
+      eq_mu1 <- expression(X * (Y - mu1))
+      eq_mu0 <- expression(X * (initial.est.mu0 - mu0))
+      eq_att <- expression(att - mu1 + mu0)
+
+      ipwra_att_moments <- function(data){
+        X <- data$X
+        Zx <- data$Zx
+        Y <- data$Y
+        Zy <- data$Zy
+        function(theta){
+          kx <- ncol(Zx); ky <- ncol(Zy)
+          px <- plogis(Zx %*% theta[1:kx])
+          Yhat0 <- Zy %*% theta[(kx + 1):(kx + ky)]
+          mu1 <- theta[kx + ky + 1]
+          mu0 <- theta[kx + ky + 2]
+          att <- theta[kx + ky + 3]
+          initial.est.mu0 <- link(Yhat0)
+          mu.eta0 <- mu.eta(Yhat0)
+          var.glm0 <- var.glm(initial.est.mu0)
+          c(eval(eq_ps), eval(eq_y0), eval(eq_mu1), eval(eq_mu0), eval(eq_att))
+        }
+      }
+      ipwra_att_estimation <- m_estimate(
+        estFUN = ipwra_att_moments,
+        data   = df,
+        weights = wt,
+        root_control = setup_root_control(start = c(bips_att, bips_y_0_att, Po1.mean, Po0.mean, TE)))
+
+      coef_ate <- coef(ipwra_att_estimation)
+      vcov_ate <- vcov(ipwra_att_estimation)
+      k <- length(coef_ate)
+      ate <- coef_ate[k]
+      var_ate <- vcov_ate[k, k]
+      mu1 <- coef_ate[k - 2]
+      mu0 <- coef_ate[k - 1]
+      var_mu1 <- vcov_ate[k - 2, k - 2]
+      var_mu0 <- vcov_ate[k - 1, k - 1]
+    }
     
     a <- list()
     a$coefs <- c(ATE = ate)

@@ -87,12 +87,17 @@
 #' teffect(A ~ X, Y ~ 1, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
 #' 
 #' # Fit AIPW using a covariate balancing method to estimate propensity scores
-#' teffect(A ~ X, Y ~ 1, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "CBPS")
-#' teffect(A ~ X, Z ~ 1, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "IPT", cov.balancing.norm = TRUE)
+#' teffect(A ~ X, Y ~ X, data = df, method = "AIPW", cov.balancing = "CBPS")
+#' teffect(A ~ X, Z ~ X, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "IPT", cov.balancing.norm = TRUE)
 #' 
 #' # Fit IPWRA using a covariate balancing method to estimate propensity scores
-#' teffect(A ~ X, Y ~ 1, data = df, method = "IPWRA", outcome.family = "binomial", cov.balancing = "CBPS")
-#' teffect(A ~ X, Z ~ 1, data = df, method = "IPWRA", outcome.family = "binomial", cov.balancing = "IPT")
+#' teffect(A ~ X, Y ~ X, data = df, method = "IPWRA", cov.balancing = "CBPS")
+#' teffect(A ~ X, Z ~ X, data = df, method = "IPWRA", outcome.family = "binomial", cov.balancing = "IPT")
+#'
+#' # ATT: with IPT weights, IPW, AIPW, and IPWRA give the same estimate
+#' teffect(A ~ X, Y ~ X, data = df, method = "IPW", cov.balancing = "IPT", treatment.effect = "ATT")
+#' teffect(A ~ X, Y ~ X, data = df, method = "AIPW", cov.balancing = "IPT", treatment.effect = "ATT")
+#' teffect(A ~ X, Y ~ X, data = df, method = "IPWRA", cov.balancing = "IPT", treatment.effect = "ATT")
 #' 
 #' @export
 teffect <- function(exposure.formula, outcome.formula,
@@ -216,10 +221,7 @@ teffect <- function(exposure.formula, outcome.formula,
         cov.balancing = cov.balancing, cov.balancing.norm = cov.balancing.norm)
     }
     else{
-      if (!is.null(cov.balancing)){
-        stop("Covariate balancing method invalid. Only 'CBPS', and 'IPT' accepted. IPWRA only implemented with covariate balancing.") } 
-      cov.balancing = "none"
-      
+      stop("IPWRA is only implemented with covariate balancing. Set cov.balancing = 'IPT' or 'CBPS'.")
     }
     
   ##PSMatch
