@@ -71,3 +71,15 @@ model_CBPS_AIPW_not_nrm <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights 
                                  cov.balancing.norm = FALSE)
 print(model_CBPS_AIPW_not_nrm)
 
+# For the ATT, IPW, AIPW, and IPWRA with IPT weights also coincide.
+model_IPT_IPW_att <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights = weights, outcome.family = "gaussian",
+                             method = "IPW", treatment.effect = "ATT", cov.balancing = "IPT")
+print(model_IPT_IPW_att)
+
+model_IPT_AIPW_att <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights = weights, outcome.family = "gaussian",
+                              method = "AIPW", treatment.effect = "ATT", cov.balancing = "IPT")
+print(model_IPT_AIPW_att)
+
+model_IPT_IPWRA_att <- teffect(A ~ X + X_1, Z ~ X + X_1, data = df, weights = weights, outcome.family = "gaussian",
+                               method = "IPWRA", treatment.effect = "ATT", cov.balancing = "IPT")
+print(model_IPT_IPWRA_att)
