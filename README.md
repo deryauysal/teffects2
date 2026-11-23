@@ -30,6 +30,8 @@ The `subdir = "R"` argument is needed because the R package is in the `R/` folde
 
 The package is based on the great work on treatment effect estimation in R by [Oliver Hines](https://github.com/ohines/teffectsR).
 
+The R package estimates the ATE and the ATT with IPW, AIPW, and IPWRA. With IPT weights and linear outcome models, the three estimators give numerically identical estimates and standard errors, for both the ATE and the ATT. The ATC is not implemented with covariate balancing. The R package is released under the MIT license (see `R/LICENSE.md`); it builds on [teffectsR](https://github.com/ohines/teffectsR) by Oliver Hines, also MIT-licensed.
+
 > **Status:** The R code is currently in **beta** and has **not been extensively tested**. Interfaces and results may change. Feedback, bug reports, and pull requests are very welcome.
 
 Contact
