@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_ipw_cb.R
 \name{fit_ipw_cb}
 \alias{fit_ipw_cb}
-\title{Fit Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBSP, Imai and Ratkovic (2014)}
+\title{Fit Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBPS, Imai and Ratkovic (2014)}
 \usage{
 fit_ipw_cb(
   X,

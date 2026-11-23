@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_ipwra_cb.R
 \name{fit_ipwra_cb}
 \alias{fit_ipwra_cb}
-\title{Fit Inverse Probability Weighted Regression Adjustment using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBSP, Imai and Ratkovic (2014)}
+\title{Fit Inverse Probability Weighted Regression Adjustment using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBPS, Imai and Ratkovic (2014)}
 \usage{
 fit_ipwra_cb(
   X,
@@ -30,13 +30,17 @@ subgroup.}
 See \link[stats]{family} for details of family functions.}
 
 \item{treatment.effect}{the treatment effect estimand of interest.
-Can be either \code{"ATE","ATT","ATC"} or \code{"All"} to fit all three.}
+Can be either \code{"ATE"}, \code{"ATT"}, or \code{"All"} (ATE and ATT).
+The ATC is not implemented with covariate balancing. For the ATT, IPT and CBPS use
+the same moment conditions and give the same estimate.}
 
 \item{weights}{an optional numeric vector of ‘observation weights’ to be used
 in the fitting process.}
 
 \item{cov.balancing}{character string indicating which covariate balancing
 method should be applied. Possible values are \code{"CBPS"} or \code{"IPT"}.}
+
+\item{cov.balancing.norm}{ignored; the IPWRA weights are always normalized.}
 }
 \value{
 List of fit parameters, which is used to derive an object of class
@@ -54,7 +58,6 @@ An exposure model to obtain observation weights is fitted using either:
 for the exposure (propensity score model).
 \code{'CBPS'}, Covariate balancing according to Imai and Ratkovic (2014) which effectively weighs the general maximum-likelihood estimation
 moment conditions by their estimated inverse conditional variance to estimate the exposure (propensity score model).
-observation weights.
 Also a (\link[stats]{glm}) outcome model is fitted to each treatment
 subgroup, and used to predict potential outcomes.
 }
@@ -67,7 +70,8 @@ Y <- X + 0.5 * A # continuous outcome
 Z <- rbinom(N, 1, plogis(Y)) # binary outcome
 df <- data.frame(X = X, A = A, Y = Y, Z = Z)
 
-teffect(A ~ X, Y ~ X, data = df, method = "AIPW")
-teffect(A ~ X, Z ~ X, data = df, outcome.family = "binomial", method = "AIPW")
+teffect(A ~ X, Y ~ X, data = df, method = "IPWRA", cov.balancing = "IPT")
+teffect(A ~ X, Y ~ X, data = df, method = "IPWRA", cov.balancing = "IPT", treatment.effect = "ATT")
+teffect(A ~ X, Z ~ X, data = df, method = "IPWRA", outcome.family = "binomial", cov.balancing = "CBPS")
 
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_aipw_cb.R
 \name{fit_aipw_cb}
 \alias{fit_aipw_cb}
-\title{Fit Augmented Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBSP, Imai and Ratkovic (2014)}
+\title{Fit Augmented Inverse Probability Weighting using Covariate Balancing Methods: IPT, Graham et al. (2012), or CBPS, Imai and Ratkovic (2014)}
 \usage{
 fit_aipw_cb(
   X,
@@ -30,7 +30,9 @@ subgroup.}
 See \link[stats]{family} for details of family functions.}
 
 \item{treatment.effect}{the treatment effect estimand of interest.
-Can be either \code{"ATE","ATT","ATC"} or \code{"All"} to fit all three.}
+Can be either \code{"ATE"}, \code{"ATT"}, or \code{"All"} (ATE and ATT).
+The ATC is not implemented with covariate balancing. For the ATT, IPT and CBPS use
+the same moment conditions and give the same estimate.}
 
 \item{weights}{an optional numeric vector of ‘observation weights’ to be used
 in the fitting process.}
@@ -69,7 +71,8 @@ Z <- rbinom(N, 1, plogis(Y)) # binary outcome
 df <- data.frame(X = X, A = A, Y = Y, Z = Z)
 
 # Fit AIPW using a covariate balancing method to estimate propensity scores
-teffect(A ~ X, Y ~ 1, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "CBPS")
-teffect(A ~ X, Z ~ 1, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "IPT", cov.balancing.norm = TRUE)
+teffect(A ~ X, Y ~ X, data = df, method = "AIPW", cov.balancing = "CBPS")
+teffect(A ~ X, Y ~ X, data = df, method = "AIPW", cov.balancing = "IPT", treatment.effect = "ATT")
+teffect(A ~ X, Z ~ X, data = df, method = "AIPW", outcome.family = "binomial", cov.balancing = "IPT", cov.balancing.norm = TRUE)
 
 }
